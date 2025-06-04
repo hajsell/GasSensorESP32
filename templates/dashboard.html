@@ -22,9 +22,19 @@
             <div class="info" >
                 <h2>Wilgotność</h2>
                 <div id="hum" class="value">-- %</div>
+                <canvas id="humidityChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="info" >
+                <h2>Wykres</h2>
+                <canvas id="tempChart" width="800" height="400"></canvas>
             </div>
         </div>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="/static/script.js"></script>
 </body>
 </html>

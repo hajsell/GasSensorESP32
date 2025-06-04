@@ -33,6 +33,11 @@ h1, h2 {
     align-items: center;
 }
 
+.content {
+    display: flex;
+
+}
+
 .card {
     background: #282f3f;
     display: inline-block;
