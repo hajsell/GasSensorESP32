@@ -208,5 +208,26 @@
     "humidity": 42.3,
     "mq2": 2526,
     "mq7": 2000
+  },
+  {
+    "timestamp": "2025-06-04 10:16:31",
+    "temperature": 29.7,
+    "humidity": 42.5,
+    "mq2": 2546,
+    "mq7": 1974
+  },
+  {
+    "timestamp": "2025-06-04 10:16:31",
+    "temperature": 29.7,
+    "humidity": 42.5,
+    "mq2": 2546,
+    "mq7": 1974
+  },
+  {
+    "timestamp": "2025-06-04 10:21:31",
+    "temperature": 29.7,
+    "humidity": 42.8,
+    "mq2": 2519,
+    "mq7": 1984
   }
 ]
