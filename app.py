@@ -11,8 +11,13 @@ import threading
 import time
 
 # --- Konfiguracja ---
-MQTT_BROKER = "broker.hivemq.com"
+MQTT_BROKER = "7d195151bce44ede9285bd5b8dcc8abe.s1.eu.hivemq.cloud"
+MQTT_PORT = 8883
 MQTT_TOPIC = "home/sensors/all"
+CLIENT_ID = "clientId-CMkPtKbWUjfe"
+CLIENT_USERNAME = "serwer"
+CLIENT_PASSWORD = "Paluszki1"
+
 DATA_FILE = "data.json"
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -39,24 +44,6 @@ def get_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Usuwanie starych danych ---
-def remove_old_data():
-    while True:
-        time.sleep(60)
-        if not os.path.exists(DATA_FILE):
-            continue
-        try:
-            with open(DATA_FILE, "r") as f:
-                data = json.load(f)
-            cutoff = datetime.now() - timedelta(hours=24)
-            new_data = [entry for entry in data if datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S") > cutoff]
-            with open(DATA_FILE, "w") as f:
-                json.dump(new_data, f, indent=2)
-        except Exception as e:
-            print(f"[Błąd czyszczenia danych] {e}")
-
-threading.Thread(target=remove_old_data, daemon=True).start()
-
 # --- Funkcja zapisu warunkowego ---
 def should_save(new, last, last_time):
     if last_time is None:
@@ -74,8 +61,8 @@ def should_save(new, last, last_time):
 
 # --- MQTT obsługa ---
 def on_connect(client, userdata, flags, rc):
-    print("Połączono z MQTT, kod:", rc)
-    client.subscribe(MQTT_TOPIC)
+    result, mid = client.subscribe("home/sensors/all")
+
 
 def on_message(client, userdata, msg):
     global last_saved_data, last_saved_time
@@ -111,13 +98,17 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"[Błąd MQTT] {e}")
 
+
 # --- Uruchom MQTT ---
 def start_mqtt():
-    client = mqtt.Client()
+    client = mqtt.Client(client_id=CLIENT_ID)
+    client.username_pw_set(CLIENT_USERNAME, CLIENT_PASSWORD)
+    client.tls_set()
     client.on_connect = on_connect
     client.on_message = on_message
-    client.connect(MQTT_BROKER, 1883, 60)
+    client.connect(MQTT_BROKER, MQTT_PORT, 60)
     client.loop_forever()
+
 
 threading.Thread(target=start_mqtt, daemon=True).start()
 
