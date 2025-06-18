@@ -8,7 +8,8 @@ import json
 import os
 from datetime import datetime, timedelta
 import threading
-import time
+import smtplib
+from email.mime.text import MIMEText
 
 # --- Konfiguracja ---
 MQTT_BROKER = "7d195151bce44ede9285bd5b8dcc8abe.s1.eu.hivemq.cloud"
@@ -19,6 +20,11 @@ CLIENT_USERNAME = "serwer"
 CLIENT_PASSWORD = "Paluszki1"
 
 DATA_FILE = "data.json"
+
+# --- Konfiguracja email ---
+EMAIL_SENDER = ""
+EMAIL_PASSWORD = ""
+EMAIL_RECIPIENT = ""
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config['SECRET_KEY'] = 'secret!'
@@ -59,6 +65,25 @@ def should_save(new, last, last_time):
         return True
     return False
 
+# --- Funkcja wysyłki e-mail ---
+def send_email_alert(subject, body):
+    def _send():
+        try:
+            msg = MIMEText(body)
+            msg["Subject"] = subject
+            msg["From"] = EMAIL_SENDER
+            msg["To"] = EMAIL_RECIPIENT
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+                server.sendmail(EMAIL_SENDER, EMAIL_RECIPIENT, msg.as_string())
+            print("[EMAIL] Wysłano alert!")
+        except Exception as e:
+            print(f"[EMAIL Błąd] {e}")
+
+    threading.Thread(target=_send).start()
+
+
 # --- MQTT obsługa ---
 def on_connect(client, userdata, flags, rc):
     result, mid = client.subscribe("home/sensors/all")
@@ -72,6 +97,21 @@ def on_message(client, userdata, msg):
 
         # Emituj dane przez WebSocket
         socketio.emit("new_data", data)
+
+        # Sprawdź gwałtowną zmianę MQ2/MQ7 i wyślij alert
+        if last_saved_data:
+            mq2_diff = abs(data["mq2"] - last_saved_data["mq2"])
+            mq7_diff = abs(data["mq7"] - last_saved_data["mq7"])
+            if data["mq2"] > 3000 or data["mq7"] > 3000:
+                body = (
+                    f"Wykryto gwałtowną zmianę wartości MQ:\n"
+                    f"MQ2: {last_saved_data['mq2']} → {data['mq2']} (Δ {mq2_diff})\n"
+                    f"MQ7: {last_saved_data['mq7']} → {data['mq7']} (Δ {mq7_diff})\n"
+                    f"Czas: {data['timestamp']}"
+                )
+                print("[EMAIL] Przygotowuję wiadomość...")
+                send_email_alert("ALERT: Gwałtowna zmiana MQ2/MQ7", body)
+                print("[EMAIL] Funkcja została wywołana.")
 
         # Zapisz, jeśli warto
         if should_save(data, last_saved_data, last_saved_time):
@@ -97,7 +137,6 @@ def on_message(client, userdata, msg):
 
     except Exception as e:
         print(f"[Błąd MQTT] {e}")
-
 
 # --- Uruchom MQTT ---
 def start_mqtt():
